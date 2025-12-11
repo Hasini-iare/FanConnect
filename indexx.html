@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>FanConnect — Demo (Light + Dark + Live Simulator + Canvas Chart)</title>
+<link rel="icon" href="data:," />
+<style>
+  :root{
+    --bg:#f8fafb;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#2563eb;
+    --accent-2:#10b981;
+    --danger:#ef4444;
+    --glass: rgba(255,255,255,0.6);
+    --shadow: 0 6px 18px rgba(16,24,40,0.08);
+    --radius:12px;
+    --maxwidth:1100px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    color: #0f172a;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1220;
+    --card:#071428;
+    --muted:#94a3b8;
+    --accent:#60a5fa;
+    --accent-2:#34d399;
+    --danger:#f87171;
+    --glass: rgba(255,255,255,0.03);
+    --shadow: 0 8px 24px rgba(2,6,23,0.6);
+    color: #e6eef8;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background: linear-gradient(180deg, var(--bg), rgba(0,0,0,0));
+    padding:28px;
+    display:flex;
+    justify-content:center;
+    font-size:15px;
+    line-height:1.4;
+    transition: background .25s ease, color .25s ease;
+  }
+
+  .app{
+    width:100%;
+    max-width:var(--maxwidth);
+    display:grid;
+    gap:20px;
+    grid-template-columns: 300px 1fr;
+    align-items:start;
+  }
+
+  header{
+    grid-column:1/-1;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{
+    width:46px;height:46px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent), #60a5fa);
+    display:flex;align-items:center;justify-content:center;color:white;font-weight:700;
+    box-shadow: var(--shadow);
+  }
+  h1{font-size:18px;margin:0}
+  .sub{font-size:13px;color:var(--muted)}
+  .header-actions{display:flex;gap:10px;align-items:center}
+
+  .sidebar{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:var(--shadow);
+    position:sticky;top:28px;height:calc(100vh - 56px);
+    overflow:auto;
+    transition: background .25s ease, color .25s ease;
+  }
+  .search{display:flex;gap:8px;margin-bottom:12px}
+  .search input{
+    flex:1;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:inherit;
+  }
+  .nav{display:flex;flex-direction:column;gap:8px}
+  .nav button{
+    text-align:left;padding:8px 10px;border-radius:8px;border:0;background:transparent;color:var(--muted);
+    cursor:pointer;font-weight:600;
+  }
+  .nav button.active{background:linear-gradient(90deg, rgba(37,99,235,0.06), rgba(16,185,129,0.03));color:var(--accent)}
+
+  .grid{display:grid;gap:16px;grid-template-columns: repeat(3,1fr)}
+  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--shadow);transition: background .25s ease, color .25s ease}
+  .card h3{margin:0 0 8px 0;font-size:14px}
+  .muted{color:var(--muted);font-size:13px}
+
+  .updates{display:flex;flex-direction:column;gap:12px}
+  .update{display:flex;gap:12px;align-items:flex-start}
+  .update .dot{width:12px;height:12px;border-radius:50%;background:var(--accent-2);margin-top:6px}
+  .update p{margin:0}
+
+  .poll{display:grid;gap:10px}
+  .poll .options{display:flex;flex-direction:column;gap:8px}
+  .option{
+    border-radius:10px;padding:10px;border:1px solid rgba(0,0,0,0.06);background:transparent;display:flex;justify-content:space-between;align-items:center;
+  }
+  .option button{background:var(--accent);color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+
+  .results{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+
+  .comments{display:flex;flex-direction:column;gap:8px}
+  .comment-box textarea{width:100%;min-height:70px;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:inherit}
+  .comment-list{display:flex;flex-direction:column;gap:8px}
+  .comment{background:linear-gradient(180deg,transparent,transparent);padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.04)}
+
+  .spark{height:36px;width:100%;display:block}
+
+  @media (max-width:980px){
+    .app{grid-template-columns: 1fr; padding-bottom:40px}
+    .sidebar{position:relative;height:auto}
+    .grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr}
+    .brand h1{font-size:16px}
+  }
+
+  .row{display:flex;gap:12px;align-items:center}
+  .pill{padding:6px 10px;border-radius:999px;font-size:13px;background:rgba(0,0,0,0.04)}
+  .btn{background:var(--accent);color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+
+  button:focus, input:focus, textarea:focus {outline:3px solid rgba(59,130,246,0.14);outline-offset:2px}
+  .canvas-wrap{height:220px;display:flex;align-items:center}
+  canvas{width:100%;height:100%;display:block;border-radius:6px}
+  .toggle{
+    display:inline-flex;align-items:center;gap:8px;background:transparent;border-radius:999px;padding:6px;
+  }
+  .switch{
+    width:44px;height:24px;border-radius:999px;background:#e6eef8;position:relative;cursor:pointer;
+  }
+  :root[data-theme="dark"] .switch{background:rgba(255,255,255,0.12)}
+  .switch .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:left .18s ease}
+  .switch.on .knob{left:23px}
+  .small-muted{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">FC</div>
+        <div>
+          <h1>FanConnect</h1>
+          <div class="sub">Engage with your team • Polls • Live simulator • Canvas charts</div>
+        </div>
+      </div>
+
+      <div class="header-actions" aria-hidden="false">
+        <div class="pill small-muted" id="eng-count">Active fans: —</div>
+
+        <div class="toggle" title="Theme">
+          <label for="theme-toggle" class="small-muted" style="margin-right:6px">Theme</label>
+          <div id="theme-toggle" class="switch" role="switch" aria-checked="false" tabindex="0" aria-label="Toggle dark mode">
+            <div class="knob"></div>
+          </div>
+        </div>
+
+        <div class="toggle" title="Live updates simulator">
+          <label for="sim-toggle" class="small-muted" style="margin-right:6px">Simulator</label>
+          <div id="sim-toggle" class="switch" role="switch" aria-checked="false" tabindex="0" aria-label="Toggle live simulator">
+            <div class="knob"></div>
+          </div>
+        </div>
+
+        <button class="btn" id="new-update-btn">+ New update</button>
+      </div>
+    </header>
+
+    <aside class="sidebar" aria-label="Navigation and quick actions">
+      <div class="search" role="search">
+        <input id="search-input" placeholder="Search updates, polls, fans..." aria-label="Search" />
+      </div>
+
+      <nav class="nav" aria-label="Main navigation">
+        <button class="active" data-view="overview">Overview</button>
+        <button data-view="updates">Updates</button>
+        <button data-view="polls">Polls</button>
+        <button data-view="discussion">Discussion</button>
+      </nav>
+
+      <hr style="margin:12px 0;border-color:rgba(0,0,0,0.04)" />
+
+      <div class="small-muted">Upcoming</div>
+      <ul style="padding-left:0;margin:8px 0 0 0;list-style:none">
+        <li class="small-muted" id="next-match">Next match: Loading…</li>
+      </ul>
+
+      <hr style="margin:12px 0;border-color:rgba(0,0,0,0.04)" />
+      <div class="small-muted">Quick stats</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <div class="pill small-muted" id="stat-polls">Polls: —</div>
+        <div class="pill small-muted" id="stat-comments">Comments: —</div>
+        <div class="pill small-muted" id="stat-updates">Updates: —</div>
+      </div>
+    </aside>
+
+    <main>
+      <section class="grid" aria-label="Key metrics">
+        <div class="card">
+          <h3>Fan Activity</h3>
+          <div class="muted small">Recent engagement</div>
+          <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+            <div style="flex:1">
+              <strong id="metric-activity">—</strong>
+              <div class="small-muted">votes + comments last 7 days</div>
+            </div>
+            <svg class="spark" id="spark-activity" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Top Poll</h3>
+          <div class="muted small">Most engaged poll</div>
+          <div style="margin-top:12px" id="top-poll-summary">—</div>
+        </div>
+
+        <div class="card">
+          <h3>Engagement Score</h3>
+          <div class="muted small">A simple composite score</div>
+          <div style="margin-top:12px;font-size:22px;font-weight:700" id="eng-score">—</div>
+        </div>
+      </section>
+
+      <section style="display:grid;gap:16px">
+        <div class="card" id="updates-card" role="region" aria-label="Team updates">
+          <h3>Team updates</h3>
+          <div class="updates" id="updates-list" aria-live="polite"></div>
+        </div>
+
+        <div class="card" id="poll-card" role="region" aria-label="Fan polls">
+          <h3>Fan poll</h3>
+          <div class="poll" id="poll-area"></div>
+          <div style="margin-top:12px">
+            <div class="small-muted" style="margin-bottom:6px">Live leaderboard</div>
+            <div class="canvas-wrap card" style="padding:12px">
+              <canvas id="poll-canvas" width="800" height="220" role="img" aria-label="Poll results horizontal bar chart"></canvas>
+            </div>
+            <div class="small-muted" style="margin-top:8px">Canvas chart shows animated, real-time poll results.</div>
+          </div>
+        </div>
+
+        <div class="card" id="discussion-card" role="region" aria-label="Discussion">
+          <h3>Fan discussion</h3>
+          <div class="comments">
+            <div class="comment-box">
+              <label for="comment-text" class="small-muted">Leave a comment</label>
+              <textarea id="comment-text" placeholder="Share your thoughts about the team..." aria-label="Comment"></textarea>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+                <div class="small-muted" id="char-count">0 / 300</div>
+                <div>
+                  <button class="btn" id="post-comment">Post</button>
+                </div>
+              </div>
+            </div>
+            <div class="comment-list" id="comments-list" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+const DEFAULTS = {
+  updates: [
+    { id: 'u1', title: "Squad announced for next match", text: "Coach released the starting XI for Saturday's fixture. Key defenders return from injury.", time: Date.now() - 1000*60*60*24 },
+    { id: 'u2', title: "Training: Open session this Friday", text: "Fans can attend a short open training session at 4pm. Tickets limited.", time: Date.now() - 1000*60*60*48 },
+  ],
+  matches: [
+    { date: addDays(2), opponent: "Rival United", venue: "Home Stadium", time: "18:30" }
+  ],
+  polls: [
+    { id: 'p1', question: "Who should take the penalty vs Rival United?", options: [
+      { id: 'o1', label: "A. Captain (No.7)", votes: 14 },
+      { id: 'o2', label: "B. Striker (No.9)", votes: 26 },
+      { id: 'o3', label: "C. Midfielder (No.10)", votes: 6 }
+    ], created: Date.now() - 1000*60*60*36 }
+  ],
+  comments: [
+    { id:'c1', name: 'Alex', text: 'Feeling confident for the match — defense looks strong!', time: Date.now()-1000*60*60*10 }
+  ]
+};
+
+function addDays(n){ const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; }
+const KEY = { updates: 'fanconnect_updates_v2', polls: 'fanconnect_polls_v2', comments: 'fanconnect_comments_v2', theme: 'fanconnect_theme_v2', sim: 'fanconnect_sim_v2' };
+function loadOrInit(){
+  if(!localStorage.getItem(KEY.updates)) localStorage.setItem(KEY.updates, JSON.stringify(DEFAULTS.updates));
+  if(!localStorage.getItem(KEY.polls)) localStorage.setItem(KEY.polls, JSON.stringify(DEFAULTS.polls));
+  if(!localStorage.getItem(KEY.comments)) localStorage.setItem(KEY.comments, JSON.stringify(DEFAULTS.comments));
+  if(!localStorage.getItem(KEY.theme)) localStorage.setItem(KEY.theme, 'light');
+  if(!localStorage.getItem(KEY.sim)) localStorage.setItem(KEY.sim, 'off');
+}
+loadOrInit();
+
+function getUpdates(){ return JSON.parse(localStorage.getItem(KEY.updates) || '[]'); }
+function saveUpdates(u){ localStorage.setItem(KEY.updates, JSON.stringify(u)); }
+function getPolls(){ return JSON.parse(localStorage.getItem(KEY.polls) || '[]'); }
+function savePolls(p){ localStorage.setItem(KEY.polls, JSON.stringify(p)); }
+function getComments(){ return JSON.parse(localStorage.getItem(KEY.comments) || '[]'); }
+function saveComments(c){ localStorage.setItem(KEY.comments, JSON.stringify(c)); }
+function getTheme(){ return localStorage.getItem(KEY.theme) || 'light'; }
+function setTheme(t){ localStorage.setItem(KEY.theme, t); applyTheme(t); }
+function getSimState(){ return localStorage.getItem(KEY.sim) || 'off'; }
+function setSimState(s){ localStorage.setItem(KEY.sim, s); }
+const themeToggle = document.getElementById('theme-toggle');
+const simToggle = document.getElementById('sim-toggle');
+function applyTheme(t){
+  if(t === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); else document.documentElement.removeAttribute('data-theme');
+  if(t === 'dark') themeToggle.classList.add('on'); else themeToggle.classList.remove('on');
+  themeToggle.setAttribute('aria-checked', t === 'dark' ? 'true' : 'false');
+}
+themeToggle.addEventListener('click', ()=> toggleTheme());
+themeToggle.addEventListener('keydown', (e)=> { if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleTheme(); }});
+function toggleTheme(){
+  const current = getTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+}
+applyTheme(getTheme());
+simToggle.addEventListener('click', ()=> toggleSimulator());
+simToggle.addEventListener('keydown', (e)=> { if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleSimulator(); }});
+function updateSimVisual(state){
+  if(state === 'on') { simToggle.classList.add('on'); simToggle.setAttribute('aria-checked','true'); } 
+  else { simToggle.classList.remove('on'); simToggle.setAttribute('aria-checked','false'); }
+}
+updateSimVisual(getSimState());
+function refreshHeaderCounts(){
+  const polls = getPolls(), comments = getComments(), updates = getUpdates();
+  document.getElementById('stat-polls').textContent = `Polls: ${polls.length}`;
+  document.getElementById('stat-comments').textContent = `Comments: ${comments.length}`;
+  document.getElementById('stat-updates').textContent = `Updates: ${updates.length}`;
+  let votesTotal = polls.reduce((s,p)=> s + p.options.reduce((a,o)=>a+o.votes,0),0);
+  const eng = Math.max(12, Math.round((votesTotal + comments.length*2)/2));
+  document.getElementById('eng-count').textContent = `Active fans: ${eng}`;
+  document.getElementById('eng-score').textContent = Math.min(100, Math.round((votesTotal + comments.length*3 + updates.length*2)));
+}
+
+function renderUpdates(filter=''){
+  const list = getUpdates().slice().sort((a,b)=>b.time - a.time);
+  const container = document.getElementById('updates-list');
+  container.innerHTML = '';
+  const f = filter.trim().toLowerCase();
+  const shown = list.filter(u => !f || (u.title + ' ' + u.text).toLowerCase().includes(f));
+  if(shown.length===0){
+    const el = document.createElement('div'); el.className='muted small'; el.textContent='No updates yet.';
+    container.appendChild(el); return;
+  }
+  shown.forEach(u=>{
+    const node = document.createElement('div'); node.className='update';
+    node.innerHTML = `
+      <div class="dot" aria-hidden="true"></div>
+      <div>
+        <strong>${escapeHtml(u.title)}</strong>
+        <div class="small-muted">${timeAgo(u.time)}</div>
+        <p>${escapeHtml(u.text)}</p>
+      </div>`;
+    container.appendChild(node);
+  });
+}
+function renderPoll(){
+  const area = document.getElementById('poll-area');
+  area.innerHTML = '';
+  const polls = getPolls();
+  if(polls.length===0){
+    area.innerHTML = '<div class="small-muted">No polls yet.</div>'; return;
+  }
+  const poll = polls[polls.length-1];
+  const pollBox = document.createElement('div');
+  pollBox.innerHTML = `
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>${escapeHtml(poll.question)}</strong>
+        <div class="small-muted">${timeAgo(poll.created)}</div>
+      </div>
+      <div class="small-muted" style="margin-top:6px">Cast your vote</div>
+      <div class="options" id="poll-options"></div>
+    </div>`;
+  area.appendChild(pollBox);
+
+  const optionsEl = document.getElementById('poll-options');
+  poll.options.forEach(opt=>{
+    const row = document.createElement('div'); row.className='option';
+    const label = document.createElement('div'); label.textContent = opt.label;
+    label.tabIndex = 0;
+    label.addEventListener('keydown', (e)=> { if(e.key === 'Enter') castVote(poll.id, opt.id); });
+    const btn = document.createElement('button'); btn.textContent = 'Vote';
+    btn.setAttribute('aria-label', 'Vote for ' + opt.label);
+    btn.addEventListener('click', ()=> castVote(poll.id, opt.id));
+    row.appendChild(label); row.appendChild(btn);
+    optionsEl.appendChild(row);
+  });
+
+  document.getElementById('top-poll-summary').textContent = poll.question + ' — top option: ' + getTopOption(poll).label;
+  drawPollCanvas(poll);
+}
+function castVote(pollId, optionId){
+  const polls = getPolls();
+  const p = polls.find(x=>x.id===pollId);
+  if(!p) return;
+  p.options.forEach(o=>{ if(o.id===optionId) o.votes = (o.votes||0) + 1; });
+  savePolls(polls);
+  renderPoll();
+  renderDashboardSparks();
+  refreshHeaderCounts();
+}
+function renderComments(filter=''){
+  const list = getComments().slice().sort((a,b)=>b.time-a.time);
+  const container = document.getElementById('comments-list');
+  container.innerHTML = '';
+  const f = filter.trim().toLowerCase();
+  const shown = list.filter(c => !f || (c.name + ' ' + c.text).toLowerCase().includes(f));
+  if(shown.length===0){
+    const el = document.createElement('div'); el.className='muted small'; el.textContent='No comments yet. Be the first!';
+    container.appendChild(el); return;
+  }
+  shown.forEach(c=>{
+    const node = document.createElement('div'); node.className='comment';
+    node.innerHTML = `
+      <div class="meta"><strong>${escapeHtml(c.name || 'Fan')}</strong> • <span class="small-muted">${timeAgo(c.time)}</span></div>
+      <div>${escapeHtml(c.text)}</div>`;
+    container.appendChild(node);
+  });
+}
+document.getElementById('post-comment').addEventListener('click', ()=>{
+  const txt = document.getElementById('comment-text');
+  const value = txt.value.trim();
+  if(!value) return alert('Please write a comment before posting.');
+  const comments = getComments();
+  comments.push({ id: 'c'+Date.now(), name: 'Fan', text: value, time: Date.now() });
+  saveComments(comments);
+  txt.value = '';
+  document.getElementById('char-count').textContent = '0 / 300';
+  renderComments();
+  refreshHeaderCounts();
+  renderDashboardSparks();
+});
+document.getElementById('comment-text').addEventListener('input', (e)=>{
+  const val = e.target.value || '';
+  document.getElementById('char-count').textContent = Math.min(val.length,300) + ' / 300';
+  if(val.length>300) e.target.value = val.slice(0,300);
+});
+document.getElementById('new-update-btn').addEventListener('click', ()=>{
+  const title = prompt('Update title');
+  if(!title) return;
+  const text = prompt('Update text');
+  if(!text) return;
+  const updates = getUpdates();
+  updates.push({ id: 'u' + Date.now(), title: title, text: text, time: Date.now() });
+  saveUpdates(updates);
+  renderUpdates();
+  refreshHeaderCounts();
+});
+document.getElementById('search-input').addEventListener('input', (e)=>{
+  const q = e.target.value;
+  renderUpdates(q);
+  renderComments(q);
+});
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    document.getElementById('updates-card').style.display = (view==='updates' || view==='overview') ? 'block' : 'none';
+    document.getElementById('poll-card').style.display = (view==='polls' || view==='overview') ? 'block' : 'none';
+    document.getElementById('discussion-card').style.display = (view==='discussion' || view==='overview') ? 'block' : 'none';
+  });
+});
+function renderDashboardSparks(){
+  const polls = getPolls();
+  const comments = getComments();
+  const votes = polls.reduce((s,p)=> s + p.options.reduce((a,o)=>a+o.votes,0),0);
+  const base = Math.max(4, Math.round(votes/7));
+  const series = [];
+  for(let i=6;i>=0;i--){
+    const v = Math.max(0, base + Math.round(Math.sin(i/2)*3) + (Math.random()*4-2));
+    series.push(Math.round(v + (comments.length/7)));
+  }
+  const svg = document.getElementById('spark-activity');
+  drawSpark(svg, series);
+  const recent = series.reduce((a,b)=>a+b,0);
+  document.getElementById('metric-activity').textContent = recent;
+}
+function drawSpark(svgEl, series){
+  const w = 100, h = 30;
+  svgEl.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const max = Math.max(...series) || 1;
+  const step = w/(series.length-1);
+  let d = '';
+  series.forEach((v,i)=>{
+    const x = i*step;
+    const y = h - (v/max)*(h-6) - 3;
+    d += (i===0?'M':' L') + x + ' ' + y;
+  });
+  svgEl.innerHTML = '<path d="'+d+'" fill="none" stroke="rgba(37,99,235,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>';
+}
+function renderNextMatch(){
+  const m = (DEFAULTS.matches && DEFAULTS.matches[0]);
+  if(!m) return;
+  document.getElementById('next-match').textContent = `Next match: ${m.opponent} • ${m.date} • ${m.time} (${m.venue})`;
+}
+const canvas = document.getElementById('poll-canvas');
+const ctx = canvas.getContext('2d');
+let canvasAnimationFrame = null;
+let canvasState = { bars: [], animProgress: 0, lastDraw: 0 };
+function resizeCanvasToDisplay(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(300, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(120, Math.floor(rect.height * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function computeBarsFromPoll(poll){
+  const total = poll.options.reduce((s,o)=>s + (o.votes||0),0) || 1;
+  const sorted = poll.options.slice().sort((a,b)=>b.votes-a.votes);
+  return sorted.map((o, idx) => ({
+    id: o.id,
+    label: o.label,
+    votes: o.votes || 0,
+    pct: (o.votes/total)*100,
+    color: pickColor(idx),
+  }));
+}
+function pickColor(i){
+  const palette = ['#2563eb','#60a5fa','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+  return palette[i % palette.length];
+}
+
+function animateBarsTo(newBars){
+  const prev = {};
+  canvasState.bars.forEach(b => prev[b.id] = b);
+  canvasState.bars = newBars.map(nb => ({
+    id: nb.id,
+    label: nb.label,
+    color: nb.color,
+    fromPct: (prev[nb.id] ? prev[nb.id].currentPct : 0),
+    toPct: nb.pct,
+    currentPct: (prev[nb.id] ? prev[nb.id].currentPct : 0),
+    votes: nb.votes
+  }));
+  canvasState.animProgress = 0;
+  canvasState.lastDraw = performance.now();
+  requestCanvasFrame();
+}
+
+function drawCanvasFrame(ts){
+  if(!canvas) return;
+  resizeCanvasToDisplay(canvas);
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const now = ts || performance.now();
+  const dt = Math.min(50, now - (canvasState.lastDraw || now));
+  canvasState.lastDraw = now;
+  const duration = 600; // ms
+  canvasState.animProgress = Math.min(1, canvasState.animProgress + dt / duration);
+  const padding = 12;
+  const barHeight = 28;
+  const gap = 12;
+  const leftLabelWidth = 180;
+  const chartX = padding + leftLabelWidth;
+  const chartW = (canvas.clientWidth - chartX - padding);
+  let y = padding;
+  canvasState.bars.forEach(b=>{
+    const t = easeOutCubic(canvasState.animProgress);
+    b.currentPct = b.fromPct + (b.toPct - b.fromPct) * t;
+    const trackX = chartX;
+    const trackY = y + (barHeight - 16)/2;
+    const trackH = 16;
+    ctx.font = '13px system-ui, Inter, Arial';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#6b7280';
+    ctx.textBaseline = 'middle';
+    const label = b.label;
+    wrapTextLeft(ctx, label, padding+6, y + barHeight/2, leftLabelWidth - 12, 1);
+    ctx.fillStyle = (getComputedStyle(document.documentElement).getPropertyValue('--glass')) || '#eef6ff';
+    roundRect(ctx, trackX, trackY, chartW, trackH, 999, true, false);
+    const fillW = Math.max(2, (b.currentPct/100) * chartW);
+    ctx.fillStyle = b.color;
+    roundRect(ctx, trackX+1, trackY+1, fillW-2, trackH-2, 999, true, false);
+    ctx.font = '12px system-ui, Inter, Arial';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#6b7280';
+    const votesText = String(b.votes);
+    ctx.textAlign = 'right';
+    ctx.fillText(votesText, trackX + chartW - 6, y + barHeight/2);
+
+    y += barHeight + gap;
+  });
+  if(canvasState.animProgress < 1){
+    canvasAnimationFrame = requestAnimationFrame(drawCanvasFrame);
+  } else {
+    canvasAnimationFrame = null;
+  }
+}
+function requestCanvasFrame(){
+  if(canvasAnimationFrame == null) canvasAnimationFrame = requestAnimationFrame(drawCanvasFrame);
+}
+function drawPollCanvas(poll){
+  const newBars = computeBarsFromPoll(poll);
+  animateBarsTo(newBars);
+}
+
+function roundRect(ctx, x, y, width, height, radius, fill, stroke){
+  if (typeof radius === 'undefined') radius = 5;
+  if (typeof radius === 'number') radius = {tl: radius, tr: radius, br: radius, bl: radius};
+  ctx.beginPath();
+  ctx.moveTo(x + radius.tl, y);
+  ctx.lineTo(x + width - radius.tr, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+  ctx.lineTo(x + width, y + height - radius.br);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+  ctx.lineTo(x + radius.bl, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+  ctx.lineTo(x, y + radius.tl);
+  ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+function wrapTextLeft(ctx, text, x, y, maxWidth, maxLines){
+  ctx.textAlign = 'left';
+  const truncated = text.length > 40 ? text.slice(0,40) + '...' : text;
+  ctx.fillText(truncated, x, y);
+}
+function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+function getTopOption(poll){
+  return poll.options.slice().sort((a,b)=>b.votes-a.votes)[0] || {label: '-'};
+}
+function timeAgo(ts){
+  if(!ts) return '';
+  const d = Date.now() - ts;
+  const sec = Math.floor(d/1000);
+  if(sec < 60) return sec + 's';
+  const min = Math.floor(sec/60); if(min<60) return min + 'm';
+  const hr = Math.floor(min/60); if(hr<24) return hr + 'h';
+  const days = Math.floor(hr/24); return days + 'd';
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+let simTimer = null;
+function startSimulator(){
+  if(simTimer) return;
+  setSimState('on'); updateSimVisual('on');
+  scheduleNextSimTick();
+}
+function stopSimulator(){
+  if(simTimer){ clearTimeout(simTimer); simTimer = null; }
+  setSimState('off'); updateSimVisual('off');
+}
+function toggleSimulator(){
+  const state = getSimState();
+  if(state === 'on') stopSimulator(); else startSimulator();
+}
+function scheduleNextSimTick(){
+  const delay = 4000 + Math.floor(Math.random() * 4000);
+  simTimer = setTimeout(()=>{
+    const polls = getPolls();
+    if(polls.length === 0) { scheduleNextSimTick(); return; }
+    const poll = polls[polls.length - 1];
+    const idx = Math.floor(Math.random() * poll.options.length);
+    poll.options[idx].votes = (poll.options[idx].votes || 0) + 1;
+    savePolls(polls);
+    renderPoll(); renderComments(); renderDashboardSparks(); refreshHeaderCounts();
+    scheduleNextSimTick();
+  }, delay);
+}
+if(getSimState() === 'on') startSimulator();
+else stopSimulator();
+window.fanconnect = { startSimulator, stopSimulator };
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'v' && (e.ctrlKey || e.metaKey)){
+    window.__fanconnect_debug && window.__fanconnect_debug.addFakeVote();
+    alert('Added a demo vote (ctrl/cmd+v).');
+  }
+});
+
+window.__fanconnect_debug = {
+  addFakeVote: ()=> {
+    const polls = getPolls(); if(polls.length===0) return;
+    const p = polls[polls.length-1];
+    const idx = Math.floor(Math.random()*p.options.length);
+    p.options[idx].votes = (p.options[idx].votes || 0) + 1;
+    savePolls(polls);
+    renderPoll(); renderDashboardSparks(); refreshHeaderCounts();
+  },
+  addFakeComment: ()=> {
+    const comments = getComments();
+    comments.push({ id:'c'+Date.now(), name:'Fan', text:'Hyped!', time: Date.now() });
+    saveComments(comments); renderComments(); refreshHeaderCounts(); renderDashboardSparks();
+  }
+};
+function initialRender(){
+  renderNextMatch();
+  renderUpdates();
+  renderPoll();
+  renderComments();
+  renderDashboardSparks();
+  refreshHeaderCounts();
+}
+initialRender();
+window.addEventListener('resize', ()=> {
+  const polls = getPolls();
+  if(polls.length) drawPollCanvas(polls[polls.length-1]);
+});
+if(getPolls().length===0){
+  savePolls(DEFAULTS.polls);
+  renderPoll();
+}
+window.addEventListener('beforeunload', ()=>{
+  if(simTimer) clearTimeout(simTimer);
+  if(canvasAnimationFrame) cancelAnimationFrame(canvasAnimationFrame);
+});
+</script>
+</body>
+</html>
