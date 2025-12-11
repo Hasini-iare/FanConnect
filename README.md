@@ -14,7 +14,7 @@ Fully responsive layout
 ## How It Works
 Everything runs locally inside a single HTML file. JavaScript handles poll data, chart rendering, simulated updates, and theme switching. The UI adjusts smoothly across devices.
 
-##Challenges
+## Challenges
 Keeping all functionality in one file
 Redrawing the canvas on every update
 Handling tab-visibility to pause updates
